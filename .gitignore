@@ -1,0 +1,11 @@
+**/node_modules/
+**/instalador/
+Xioleni Open PDF - Escritorio/
+Xioleni Open PDF - Online/
+.env
+.env.*
+!.env.example
+*.log
+*.pdf
+/PASO A SEGUIR.txt
+/xioleni.com.png

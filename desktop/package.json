@@ -1,0 +1,50 @@
+{
+  "name": "xioleni-open-pdf-desktop",
+  "version": "1.0.0",
+  "description": "Editor local de documentos PDF para Windows",
+  "author": "Xioleni",
+  "license": "MIT AND LicenseRef-Xioleni-Logo-Reserved",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.xioleni.openpdf",
+    "productName": "Xioleni Open PDF",
+    "asar": true,
+    "directories": {
+      "output": "instalador"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "index.html",
+      "assets/**/*",
+      "vendor/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/xioleni-open-pdf.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "Xioleni-Open-PDF-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Xioleni Open PDF"
+    }
+  }
+}

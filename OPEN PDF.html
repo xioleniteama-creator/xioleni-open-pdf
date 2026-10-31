@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f7">
+  <meta name="description" content="Xioleni Open PDF: editor de PDF para escritorio y navegador. Edita texto, añade imágenes y organiza páginas; tus documentos se procesan localmente.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="author" content="Xioleni">
+  <meta name="application-name" content="Xioleni Open PDF">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Xioleni Open PDF">
+  <meta property="og:title" content="Xioleni Open PDF — Editor local de documentos PDF">
+  <meta property="og:description" content="Abre, edita y organiza documentos PDF en tu equipo desde la aplicación de escritorio o el navegador.">
+  <meta name="color-scheme" content="light">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" sizes="256x256" href="assets/xioleni-open-pdf-app.png">
+  <link rel="apple-touch-icon" href="assets/xioleni-open-pdf-app.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Xioleni Open PDF — Editor local de documentos PDF</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #edf0f2;
+      --panel: #ffffff;
+      --panel-raised: #f3f4f5;
+      --line: #e0e3e6;
+      --text: #343a40;
+      --muted: #70777f;
+      --accent: #cf3942;
+      --accent-soft: #fbefef;
+      --danger: #b8323c;
+      font-family: "Segoe UI", Inter, system-ui, sans-serif;
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { background: var(--bg); color: var(--text); font-size: 13px; }
+    button, input { font: inherit; }
+    button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-raised);
+      color: var(--text);
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    button:hover:not(:disabled) { background: #e8eaec; border-color: #c7ccd1; }
+    button:disabled { opacity: .42; cursor: default; }
+    button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .app { display: grid; grid-template-rows: 58px 47px minmax(0, 1fr) 28px; height: 100%; }
+    .topbar, .toolbar, .statusbar { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+    .topbar { justify-content: space-between; padding: 0 18px; background: var(--panel); }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 245px; }
+    .brand-logo { display: block; width: 46px; height: 35px; object-fit: contain; }
+    .brand-name { font-size: 14px; font-weight: 700; letter-spacing: -.2px; }
+    .brand-subtitle { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .file-title { overflow: hidden; max-width: 38vw; color: #515960; text-overflow: ellipsis; white-space: nowrap; }
+    .top-actions { display: flex; gap: 8px; align-items: center; }
+    .top-actions button { padding: 8px 13px; }
+    .top-actions .save { background: var(--accent); border-color: var(--accent); color: white; font-weight: 650; }
+    .top-actions .save:hover:not(:disabled) { background: #b72f38; }
+
+    .toolbar { gap: 7px; padding: 0 15px; background: var(--panel); overflow-x: auto; }
+    .toolbar { scrollbar-width: none; }
+    .toolbar::-webkit-scrollbar { display: none; }
+    .tool-group { display: flex; align-items: center; gap: 5px; padding-right: 9px; margin-right: 3px; border-right: 1px solid var(--line); white-space: nowrap; }
+    .tool-group:last-child { border: 0; }
+    .tool-btn { display: flex; align-items: center; gap: 7px; min-height: 31px; padding: 0 10px; white-space: nowrap; }
+    .tool-btn.active { color: #a92c36; background: var(--accent-soft); border-color: #e5b7ba; }
+    .icon { width: 16px; height: 16px; display: inline-grid; place-items: center; color: #555d65; font-size: 15px; line-height: 1; }
+    .divider { width: 1px; height: 23px; margin: 0 2px; background: var(--line); }
+    .zoom-value { min-width: 43px; text-align: center; color: #42484f; font-variant-numeric: tabular-nums; }
+    .small-btn { width: 30px; height: 30px; padding: 0; font-size: 16px; }
+    .workarea { display: grid; grid-template-columns: 220px minmax(0, 1fr) 265px; min-height: 0; }
+    .sidebar { min-height: 0; overflow: auto; background: var(--panel); }
+    .left-sidebar { border-right: 1px solid var(--line); }
+    .right-sidebar { border-left: 1px solid var(--line); }
+    .side-heading { display: flex; justify-content: space-between; align-items: center; padding: 16px 15px 11px; color: #42484f; font-size: 12px; font-weight: 650; }
+    .side-heading small { color: var(--muted); font-size: 11px; font-weight: 450; }
+    .thumbnail-list { display: flex; flex-direction: column; gap: 10px; padding: 5px 12px 20px; }
+    .thumb {
+      position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 8px; border: 1px solid transparent; border-radius: 9px; cursor: pointer;
+    }
+    .thumb:hover { background: #f1f2f3; }
+    .thumb.selected { background: #f9eded; border-color: #d8a1a5; }
+    .thumb canvas { display: block; max-width: 150px; height: auto; background: white; box-shadow: 0 3px 12px #26313c18; }
+    .thumb-label { display: flex; width: 100%; justify-content: space-between; color: #555d65; font-size: 11px; }
+    .thumb-grip { color: #858b92; }
+    .empty-thumbnails { padding: 25px 14px; color: var(--muted); text-align: center; line-height: 1.6; }
+
+    .canvas-area { position: relative; min-width: 0; overflow: auto; background: #edf0f2; }
+    .welcome {
+      display: flex; align-items: center; justify-content: center; min-height: 100%; padding: 40px;
+      background: radial-gradient(ellipse at 50% 45%, #ffffff 0, #f3f4f5 54%, #edf0f2 100%);
+    }
+    .welcome-card { max-width: 450px; text-align: center; }
+    .welcome-logo { display: block; width: min(230px, 70vw); height: auto; margin: 0 auto 14px; object-fit: contain; }
+    .welcome h1 { margin: 0 0 9px; color: #343a40; font-size: 23px; font-weight: 700; letter-spacing: -.5px; }
+    .welcome p { margin: 0; color: var(--muted); line-height: 1.6; }
+    .open-main { margin-top: 22px; padding: 10px 17px; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 650; }
+    .privacy-note { margin-top: 14px !important; color: #6b747c !important; font-size: 11px; }
+    .warning-note { margin: 11px 0 0; padding: 9px; border: 1px solid #e8d8ae; border-radius: 6px; background: #fbf8ef; color: #75612c; font-size: 11px; line-height: 1.5; }
+    .page-stack { display: flex; flex-direction: column; align-items: center; gap: 21px; min-height: 100%; padding: 26px 28px 60px; }
+    .page-shell { position: relative; flex: 0 0 auto; background: white; box-shadow: 0 8px 30px #0008; }
+    .page-shell canvas { display: block; }
+    .text-layer, .selection-layer { position: absolute; inset: 0; }
+    .text-layer { overflow: hidden; line-height: 1; user-select: none; }
+    .text-item {
+      position: absolute; overflow: hidden; color: transparent; white-space: pre; transform-origin: left bottom;
+      cursor: text; user-select: text;
+    }
+    .text-item:hover { background: #ce394226; outline: 1px solid #ce39426b; }
+    .text-item.chosen { background: #ce394247; outline: 1px solid var(--accent); }
+    .selection-layer { pointer-events: none; }
+    .selection-box { position: absolute; display: none; border: 1px solid var(--accent); background: #ce39421e; pointer-events: none; }
+    .page-caption { align-self: flex-end; color: #858b99; font-size: 10px; }
+    .canvas-area.region-mode .text-layer { display: none; }
+    .canvas-area.region-mode .page-shell { cursor: crosshair; }
+    .canvas-area.region-mode .selection-layer { pointer-events: auto; touch-action: none; }
+    .canvas-area.text-mode .page-shell { cursor: text; }
+    .no-document { display: none; }
+
+    .property-section { padding: 15px; border-bottom: 1px solid var(--line); }
+    .property-title { margin: 0 0 11px; color: #4a5158; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+    .property-empty { color: #727a82; font-size: 12px; line-height: 1.6; }
+    .property-label { display: block; margin: 11px 0 6px; color: #596169; font-size: 11px; }
+    .property-section input[type="text"], .property-section input[type="number"] {
+      width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 6px; outline: 0;
+      background: #fff; color: var(--text);
+    }
+    .property-section input[type="color"] { width: 100%; height: 34px; padding: 3px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .property-section input[type="checkbox"] { accent-color: var(--accent); }
+    .property-row { display: flex; gap: 8px; align-items: center; }
+    .property-row > * { flex: 1; }
+    .apply-btn { width: 100%; margin-top: 12px; padding: 8px 10px; background: var(--accent); border-color: var(--accent); color: white; font-weight: 650; }
+    .secondary-btn { width: 100%; margin-top: 8px; padding: 8px 10px; }
+    .danger-btn { color: #a92c36; }
+    .check-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: #555d65; font-size: 11px; }
+    .shortcut { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; color: #727a82; font-size: 11px; }
+    kbd { padding: 2px 5px; border: 1px solid #dfe2e5; border-radius: 4px; background: #f2f3f4; color: #4d555d; font: inherit; }
+
+    .statusbar { justify-content: space-between; padding: 0 12px; border-top: 1px solid var(--line); border-bottom: 0; background: var(--panel); color: #717981; font-size: 10px; }
+    .status-left, .status-right { display: flex; align-items: center; gap: 12px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #64c995; }
+    .status-dot.error { background: var(--danger); }
+    .status-dot.busy { background: #e8ba63; }
+    .toast {
+      position: fixed; z-index: 20; right: 20px; bottom: 42px; max-width: min(440px, calc(100vw - 40px));
+      padding: 11px 15px; border: 1px solid #d5d9dd; border-radius: 9px; background: #fff; color: #343a40;
+      box-shadow: 0 8px 26px #26313c22; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s;
+    }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    .toast.error { border-color: #d5858a; }
+    .loading-overlay {
+      position: fixed; z-index: 30; inset: 0; display: none; align-items: center; justify-content: center;
+      background: #343a4070; backdrop-filter: blur(3px);
+    }
+    .loading-overlay.visible { display: flex; }
+    .loading-card { min-width: 230px; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); text-align: center; }
+    .spinner { width: 24px; height: 24px; margin: 0 auto 11px; border: 2px solid #d7dade; border-top-color: var(--accent); border-radius: 50%; animation: spin .75s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+    .file-input { display: none; }
+
+    @media (max-width: 1000px) {
+      .workarea { grid-template-columns: 170px minmax(0, 1fr) 220px; }
+      .brand { min-width: auto; }
+      .brand-subtitle { display: none; }
+      .tool-btn { padding: 0 8px; }
+    }
+    @media (max-width: 1300px) {
+      .tool-btn .tool-text { display: none; }
+      .tool-btn { width: 34px; justify-content: center; padding: 0; }
+    }
+    @media (max-width: 760px) {
+      .workarea { grid-template-columns: 135px minmax(0, 1fr); }
+      .right-sidebar { display: none; }
+      .topbar { padding: 0 10px; }
+      .file-title { display: none; }
+      .toolbar { padding: 0 8px; }
+      .tool-btn .tool-text { display: none; }
+      .tool-btn { width: 34px; justify-content: center; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/xioleni-open-pdf.png" alt="Logotipo de Xioleni Open PDF">
+        <div><div class="brand-name">Xioleni Open PDF</div><div class="brand-subtitle" id="brandSubtitle">Editor para escritorio y web</div></div>
+      </div>
+      <div class="file-title" id="fileTitle">Sin documento abierto</div>
+      <div class="top-actions">
+        <button id="openButton" type="button">Abrir PDF</button>
+        <button id="exportButton" type="button" disabled>Exportar</button>
+        <button class="save" id="saveButton" type="button" disabled>Guardar</button>
+      </div>
+    </header>
+
+    <nav class="toolbar" aria-label="Herramientas del documento">
+      <div class="tool-group">
+        <button class="tool-btn" id="undoButton" type="button" title="Deshacer (Ctrl+Z)" disabled><span class="icon">↶</span><span class="tool-text">Deshacer</span></button>
+        <button class="tool-btn" id="redoButton" type="button" title="Rehacer (Ctrl+Y)" disabled><span class="icon">↷</span><span class="tool-text">Rehacer</span></button>
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn active" data-tool="select" type="button" title="Seleccionar texto"><span class="icon">↖</span><span class="tool-text">Seleccionar</span></button>
+        <button class="tool-btn" data-tool="region" type="button" title="Seleccionar área para borrar o reemplazar"><span class="icon">▧</span><span class="tool-text">Área</span></button>
+        <button class="tool-btn" id="addTextButton" type="button" title="Añadir texto"><span class="icon">T</span><span class="tool-text">Añadir texto</span></button>
+        <button class="tool-btn" id="addImageButton" type="button" title="Añadir o reemplazar imagen"><span class="icon">▧</span><span class="tool-text">Imagen</span></button>
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn" id="deleteSelectionButton" type="button" title="Cubrir visualmente la selección" disabled><span class="icon">⌫</span><span class="tool-text">Cubrir</span></button>
+        <button class="tool-btn" id="replaceImageButton" type="button" title="Reemplazar área seleccionada con una imagen" disabled><span class="icon">⇄</span><span class="tool-text">Reemplazar</span></button>
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn" id="insertPageButton" type="button" title="Insertar página en blanco" disabled><span class="icon">＋</span><span class="tool-text">Página</span></button>
+        <button class="tool-btn" id="importPagesButton" type="button" title="Insertar páginas desde otro PDF" disabled><span class="icon">⇧</span><span class="tool-text">Importar</span></button>
+        <button class="tool-btn" id="rotatePageButton" type="button" title="Girar página" disabled><span class="icon">⟳</span><span class="tool-text">Girar</span></button>
+        <button class="tool-btn" id="deletePageButton" type="button" title="Eliminar página" disabled><span class="icon">−</span><span class="tool-text">Eliminar página</span></button>
+      </div>
+      <div class="tool-group">
+        <button class="small-btn" id="zoomOutButton" type="button" title="Reducir zoom" disabled>−</button>
+        <span class="zoom-value" id="zoomValue">100%</span>
+        <button class="small-btn" id="zoomInButton" type="button" title="Aumentar zoom" disabled>＋</button>
+      </div>
+    </nav>
+
+    <main class="workarea">
+      <aside class="sidebar left-sidebar">
+        <div class="side-heading">Páginas <small id="pageCount">0</small></div>
+        <div class="thumbnail-list" id="thumbnailList"><div class="empty-thumbnails">Abre un PDF para ver sus páginas.</div></div>
+      </aside>
+
+      <section class="canvas-area" id="canvasArea" aria-label="Vista del documento">
+        <div class="welcome" id="welcome">
+          <div class="welcome-card">
+            <img class="welcome-logo" src="assets/xioleni-open-pdf.png" alt="Xioleni Open PDF">
+            <h1>Tu espacio para editar PDF</h1>
+            <p>Abre un documento desde tu equipo para editar texto e imágenes, organizar páginas y guardar una copia local.</p>
+            <button class="open-main" id="welcomeOpenButton" type="button">Abrir un documento</button>
+            <p class="privacy-note">Tus documentos se procesan en tu dispositivo; este editor no los envía a nuestros servidores.</p>
+          </div>
+        </div>
+        <div class="page-stack hidden" id="pageStack"></div>
+      </section>
+
+      <aside class="sidebar right-sidebar">
+        <div class="side-heading">Propiedades</div>
+        <section class="property-section" id="selectionPanel">
+          <h2 class="property-title">Selección</h2>
+          <div class="property-empty" id="selectionHelp">Selecciona un bloque de texto o dibuja un área en la página.</div>
+          <div class="hidden" id="textProperties">
+            <span class="property-label">Texto seleccionado</span>
+            <input id="selectedTextInput" type="text" aria-label="Texto seleccionado">
+            <div class="property-row">
+              <div><label class="property-label" for="textSizeInput">Tamaño</label><input id="textSizeInput" type="number" min="5" max="96" value="12"></div>
+              <div><label class="property-label" for="textColorInput">Color</label><input id="textColorInput" type="color" value="#202020"></div>
+            </div>
+            <label class="check-row"><input id="boldInput" type="checkbox"> Negrita</label>
+            <button class="apply-btn" id="applyTextButton" type="button">Aplicar cambios</button>
+            <button class="secondary-btn danger-btn" id="deleteTextButton" type="button">Cubrir este texto</button>
+          </div>
+          <div class="hidden" id="regionProperties">
+            <span class="property-label">Área seleccionada</span>
+            <p class="property-empty">El contenido dentro del rectángulo se cubrirá visualmente con blanco.</p>
+            <button class="apply-btn danger-btn" id="eraseRegionButton" type="button">Cubrir área</button>
+            <button class="secondary-btn" id="regionImageButton" type="button">Reemplazar con imagen…</button>
+            <button class="secondary-btn" id="clearRegionButton" type="button">Cancelar selección</button>
+          </div>
+        </section>
+        <section class="property-section">
+          <h2 class="property-title">Añadir texto</h2>
+          <label class="property-label" for="newTextInput">Contenido</label>
+          <input id="newTextInput" type="text" placeholder="Escribe el texto…">
+          <div class="property-row">
+            <div><label class="property-label" for="newTextSize">Tamaño</label><input id="newTextSize" type="number" min="5" max="96" value="14"></div>
+            <div><label class="property-label" for="newTextColor">Color</label><input id="newTextColor" type="color" value="#202020"></div>
+          </div>
+          <p class="property-empty" style="margin:10px 0 0">Pulsa “Añadir texto” y luego el lugar de la página.</p>
+        </section>
+        <section class="property-section">
+          <h2 class="property-title">Documento</h2>
+          <div class="property-empty" id="documentDetails">Sin documento abierto.</div>
+          <p class="warning-note">Las correcciones y el borrado cubren el contenido; los datos PDF originales pueden seguir siendo recuperables. No uses esta herramienta para eliminar información confidencial.</p>
+          <div class="shortcut"><span>Deshacer</span><kbd>Ctrl Z</kbd></div>
+          <div class="shortcut"><span>Rehacer</span><kbd>Ctrl Y</kbd></div>
+          <div class="shortcut"><span>Guardar</span><kbd>Ctrl S</kbd></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="statusbar">
+      <div class="status-left"><span class="status-dot" id="statusDot"></span><span id="statusText">Listo</span></div>
+      <div class="status-right"><span id="selectionStatus">Sin selección</span><span>Procesamiento local</span></div>
+    </footer>
+  </div>
+
+  <input class="file-input" id="pdfInput" type="file" accept="application/pdf,.pdf">
+  <input class="file-input" id="importInput" type="file" accept="application/pdf,.pdf">
+  <input class="file-input" id="imageInput" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="loading-overlay" id="loadingOverlay" aria-live="polite"><div class="loading-card"><div class="spinner"></div><span id="loadingText">Cargando documento…</span></div></div>
+
+  <script src="vendor/pdf.min.js"></script>
+  <script src="vendor/pdf-lib.min.js"></script>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const canvasArea = $("canvasArea");
+      const pageStack = $("pageStack");
+      const thumbnailList = $("thumbnailList");
+      const pdfInput = $("pdfInput");
+      const importInput = $("importInput");
+      const imageInput = $("imageInput");
+      const desktop = window.xioleniDesktop;
+      const state = {
+        pdfDocument: null,
+        rendererDocument: null,
+        file: null,
+        fileHandle: null,
+        fileName: "",
+        selectedPage: 0,
+        selectedText: null,
+        selectedRegion: null,
+        tool: "select",
+        zoom: 1,
+        history: [],
+        historyIndex: -1,
+        savedHistoryIndex: 0,
+        historyLimit: 12,
+        dirty: false,
+        mutating: false,
+        imageMode: "insert",
+        pendingImage: null,
+        toastTimer: null
+      };
+
+      function showToast(message, isError = false) {
+        const toast = $("toast");
+        toast.textContent = message;
+        toast.classList.toggle("error", isError);
+        toast.classList.add("visible");
+        clearTimeout(state.toastTimer);
+        state.toastTimer = setTimeout(() => toast.classList.remove("visible"), isError ? 6000 : 3200);
+      }
+
+      function setStatus(message, kind = "ready") {
+        $("statusText").textContent = message;
+        $("statusDot").className = "status-dot" + (kind === "error" ? " error" : kind === "busy" ? " busy" : "");
+      }
+
+      function setLoading(message, loading) {
+        $("loadingText").textContent = message;
+        $("loadingOverlay").classList.toggle("visible", loading);
+      }
+
+      function requireDocument() {
+        if (!state.pdfDocument || !state.rendererDocument) {
+          showToast("Abre un documento PDF antes de usar esta herramienta.", true);
+          return false;
+        }
+        return true;
+      }
+
+      function reportError(error, action) {
+        const detail = error instanceof Error ? error.message : String(error);
+        setStatus("No se pudo " + action, "error");
+        showToast("No se pudo " + action + ": " + detail, true);
+      }
+
+      function setDirty(dirty) {
+        state.dirty = dirty;
+        $("fileTitle").textContent = state.fileName + (dirty ? "  •  Cambios sin guardar" : "");
+        $("saveButton").textContent = dirty ? "Guardar *" : "Guardar";
+        desktop?.notifyDirty(dirty);
+      }
+
+      function updateToolbar() {
+        const hasDoc = Boolean(state.pdfDocument);
+        const busy = state.mutating;
+        ["saveButton", "exportButton", "deleteSelectionButton", "replaceImageButton", "insertPageButton", "importPagesButton", "rotatePageButton", "deletePageButton",
+          "zoomInButton", "zoomOutButton", "addTextButton", "addImageButton"].forEach((id) => { $(id).disabled = !hasDoc || busy; });
+        $("undoButton").disabled = !hasDoc || busy || state.historyIndex <= 0;
+        $("redoButton").disabled = !hasDoc || busy || state.historyIndex >= state.history.length - 1;
+        document.querySelectorAll("[data-tool]").forEach((button) => { button.disabled = !hasDoc || busy; });
+        $("pageCount").textContent = hasDoc ? String(state.pdfDocument.getPageCount()) : "0";
+        $("zoomValue").textContent = Math.round(state.zoom * 100) + "%";
+        $("deleteSelectionButton").disabled = !hasDoc || (!state.selectedText && !state.selectedRegion);
+        $("replaceImageButton").disabled = !hasDoc || !state.selectedRegion;
+        $("insertPageButton").disabled = !hasDoc;
+        $("rotatePageButton").disabled = !hasDoc;
+        $("deletePageButton").disabled = !hasDoc;
+      }
+
+      async function openFile(file, fileHandle = null) {
+        if (!file || !/\.pdf$/i.test(file.name)) {
+          showToast("Selecciona un archivo con extensión PDF.", true);
+          return;
+        }
+        if (state.dirty && !window.confirm("Hay cambios sin guardar. ¿Quieres descartarlos y abrir otro documento?")) return;
+        setLoading("Abriendo y preparando el documento…", true);
+        setStatus("Abriendo documento…", "busy");
+        try {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const pdfDocument = await PDFLib.PDFDocument.load(bytes);
+          const loadingTask = pdfjsLib.getDocument({ data: bytes.slice() });
+          const rendererDocument = await loadingTask.promise;
+          state.pdfDocument = pdfDocument;
+          state.rendererDocument = rendererDocument;
+          state.file = file;
+          state.fileHandle = fileHandle;
+          state.fileName = file.name;
+          state.selectedPage = 0;
+          state.selectedText = null;
+          state.selectedRegion = null;
+          state.zoom = 1;
+          state.history = [bytes];
+          state.historyIndex = 0;
+          state.savedHistoryIndex = 0;
+          setDirty(false);
+          await renderDocument();
+          updateDetails();
+          setStatus("Documento abierto");
+          updateToolbar();
+        } catch (error) {
+          state.pdfDocument = null;
+          state.rendererDocument = null;
+          updateToolbar();
+          throw error;
+        } finally {
+          setLoading("", false);
+        }
+      }
+
+      function updateDetails() {
+        if (!state.pdfDocument) {
+          $("documentDetails").textContent = "Sin documento abierto.";
+          return;
+        }
+        const pages = state.pdfDocument.getPages();
+        const first = pages[0];
+        $("documentDetails").textContent = state.pdfDocument.getPageCount() + " páginas · " +
+          Math.round(first.getWidth()) + " × " + Math.round(first.getHeight()) + " pt";
+      }
+
+      async function renderDocument() {
+        if (!state.rendererDocument) return;
+        setLoading("Renderizando páginas…", true);
+        pageStack.replaceChildren();
+        thumbnailList.replaceChildren();
+        $("welcome").classList.add("hidden");
+        pageStack.classList.remove("hidden");
+        const count = state.rendererDocument.numPages;
+        try {
+        for (let pageNumber = 1; pageNumber <= count; pageNumber++) {
+          const pdfPage = await state.rendererDocument.getPage(pageNumber);
+          const viewport = pdfPage.getViewport({ scale: state.zoom });
+          const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+          const shell = document.createElement("article");
+          shell.className = "page-shell";
+          shell.dataset.page = String(pageNumber - 1);
+          shell.style.width = viewport.width + "px";
+          shell.style.height = viewport.height + "px";
+
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(viewport.width * outputScale);
+          canvas.height = Math.ceil(viewport.height * outputScale);
+          canvas.style.width = viewport.width + "px";
+          canvas.style.height = viewport.height + "px";
+          shell.append(canvas);
+          const context = canvas.getContext("2d", { alpha: false });
+          await pdfPage.render({ canvasContext: context, viewport, transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0] }).promise;
+
+          const textLayer = document.createElement("div");
+          textLayer.className = "text-layer";
+          const textContent = await pdfPage.getTextContent();
+          for (const item of textContent.items) {
+            if (!item.str || !item.str.trim() || !item.transform) continue;
+            const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+            const fontHeight = Math.hypot(tx[2], tx[3]);
+            const x = tx[4];
+            const y = tx[5] - fontHeight;
+            const width = Math.max(2, item.width * state.zoom);
+            const span = document.createElement("span");
+            span.className = "text-item";
+            span.textContent = item.str;
+            span.style.left = x + "px";
+            span.style.top = y + "px";
+            span.style.width = width + "px";
+            span.style.height = Math.max(4, fontHeight * 1.25) + "px";
+            span.style.fontSize = fontHeight + "px";
+            span.dataset.page = String(pageNumber - 1);
+            span.dataset.text = item.str;
+            const selection = {
+              pageIndex: pageNumber - 1,
+              text: item.str,
+              x,
+              y,
+              width,
+              height: Math.max(4, fontHeight * 1.25),
+              span,
+              viewport
+            };
+            span.addEventListener("click", (event) => {
+              event.stopPropagation();
+              chooseText(selection);
+            });
+            textLayer.append(span);
+          }
+          shell.append(textLayer);
+
+          const selectionLayer = document.createElement("div");
+          selectionLayer.className = "selection-layer";
+          const selectionBox = document.createElement("div");
+          selectionBox.className = "selection-box";
+          selectionLayer.append(selectionBox);
+          shell.append(selectionLayer);
+          attachRegionSelection(shell, selectionLayer, selectionBox, viewport, pageNumber - 1);
+
+          shell.addEventListener("click", (event) => {
+            if (state.tool !== "text" || event.target.closest(".text-item")) return;
+            const rect = canvas.getBoundingClientRect();
+            const point = viewport.convertToPdfPoint(
+              (event.clientX - rect.left) * viewport.width / rect.width,
+              (event.clientY - rect.top) * viewport.height / rect.height
+            );
+            addTextAt(pageNumber - 1, point[0], point[1]);
+          });
+
+          const caption = document.createElement("div");
+          caption.className = "page-caption";
+          caption.textContent = "Página " + pageNumber;
+          pageStack.append(shell, caption);
+
+          const thumb = document.createElement("div");
+          thumb.className = "thumb" + (pageNumber - 1 === state.selectedPage ? " selected" : "");
+          thumb.draggable = true;
+          thumb.dataset.page = String(pageNumber - 1);
+          const thumbCanvas = document.createElement("canvas");
+          const thumbViewport = pdfPage.getViewport({ scale: Math.min(140 / viewport.width, 120 / viewport.height) });
+          thumbCanvas.width = Math.ceil(thumbViewport.width);
+          thumbCanvas.height = Math.ceil(thumbViewport.height);
+          thumbCanvas.style.width = thumbViewport.width + "px";
+          thumbCanvas.style.height = thumbViewport.height + "px";
+          await pdfPage.render({ canvasContext: thumbCanvas.getContext("2d", { alpha: false }), viewport: thumbViewport }).promise;
+          const label = document.createElement("div");
+          label.className = "thumb-label";
+          label.innerHTML = "<span>Página " + pageNumber + "</span><span class=\"thumb-grip\">⠿</span>";
+          thumb.append(thumbCanvas, label);
+          thumb.addEventListener("click", () => selectPage(pageNumber - 1));
+          thumb.addEventListener("dragstart", (event) => {
+            event.dataTransfer.setData("text/plain", String(pageNumber - 1));
+            event.dataTransfer.effectAllowed = "move";
+          });
+          thumb.addEventListener("dragover", (event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; });
+          thumb.addEventListener("drop", async (event) => {
+            event.preventDefault();
+            const from = Number(event.dataTransfer.getData("text/plain"));
+            const to = Number(thumb.dataset.page);
+            if (Number.isInteger(from) && from !== to) {
+              try { await mutate(() => state.pdfDocument.movePage(from, to), "Se reorganizaron las páginas"); }
+              catch (error) { reportError(error, "reorganizar las páginas"); }
+            }
+          });
+          thumbnailList.append(thumb);
+        }
+        updateToolbar();
+        } finally {
+          setLoading("", false);
+        }
+      }
+
+      function selectPage(index) {
+        if (state.mutating || !state.pdfDocument || index < 0 || index >= state.pdfDocument.getPageCount()) return;
+        state.selectedPage = index;
+        const page = pageStack.querySelector('[data-page="' + index + '"]');
+        if (page) page.scrollIntoView({ behavior: "smooth", block: "center" });
+        thumbnailList.querySelectorAll(".thumb").forEach((item) => item.classList.toggle("selected", Number(item.dataset.page) === index));
+        updateToolbar();
+      }
+
+      function chooseText(selection) {
+        state.selectedText = selection;
+        state.selectedRegion = null;
+        state.selectedPage = selection.pageIndex;
+        pageStack.querySelectorAll(".text-item").forEach((span) => span.classList.toggle("chosen", span === selection.span));
+        $("selectionHelp").classList.add("hidden");
+        $("regionProperties").classList.add("hidden");
+        $("textProperties").classList.remove("hidden");
+        $("selectedTextInput").value = selection.text;
+        $("selectionStatus").textContent = "Texto seleccionado · página " + (selection.pageIndex + 1);
+        updateToolbar();
+      }
+
+      function attachRegionSelection(shell, layer, box, viewport, pageIndex) {
+        let start = null;
+        layer.addEventListener("pointerdown", (event) => {
+          if (state.tool !== "region") return;
+          event.preventDefault();
+          layer.setPointerCapture(event.pointerId);
+          const rect = shell.getBoundingClientRect();
+          start = { x: event.clientX - rect.left, y: event.clientY - rect.top, rect };
+          box.style.display = "block";
+          box.style.left = start.x + "px";
+          box.style.top = start.y + "px";
+          box.style.width = "0px";
+          box.style.height = "0px";
+        });
+        layer.addEventListener("pointermove", (event) => {
+          if (!start) return;
+          const currentX = event.clientX - start.rect.left;
+          const currentY = event.clientY - start.rect.top;
+          box.style.left = Math.min(start.x, currentX) + "px";
+          box.style.top = Math.min(start.y, currentY) + "px";
+          box.style.width = Math.abs(currentX - start.x) + "px";
+          box.style.height = Math.abs(currentY - start.y) + "px";
+        });
+        const finish = (event) => {
+          if (!start) return;
+          const rect = shell.getBoundingClientRect();
+          const endX = event.clientX - rect.left;
+          const endY = event.clientY - rect.top;
+          const left = Math.min(start.x, endX);
+          const top = Math.min(start.y, endY);
+          const width = Math.abs(endX - start.x);
+          const height = Math.abs(endY - start.y);
+          start = null;
+          if (width < 4 || height < 4) {
+            box.style.display = "none";
+            return;
+          }
+          const points = [
+            viewport.convertToPdfPoint(left, top),
+            viewport.convertToPdfPoint(left + width, top + height)
+          ];
+          state.selectedRegion = {
+            pageIndex,
+            x: Math.min(points[0][0], points[1][0]),
+            y: Math.min(points[0][1], points[1][1]),
+            width: Math.abs(points[1][0] - points[0][0]),
+            height: Math.abs(points[1][1] - points[0][1]),
+            shell,
+            box
+          };
+          state.selectedText = null;
+          state.selectedPage = pageIndex;
+          $("selectionHelp").classList.add("hidden");
+          $("textProperties").classList.add("hidden");
+          $("regionProperties").classList.remove("hidden");
+          $("selectionStatus").textContent = "Área seleccionada · página " + (pageIndex + 1);
+          updateToolbar();
+        };
+        layer.addEventListener("pointerup", finish);
+        layer.addEventListener("pointercancel", finish);
+      }
+
+      function clearSelection() {
+        if (state.selectedText?.span) state.selectedText.span.classList.remove("chosen");
+        if (state.selectedRegion?.box) state.selectedRegion.box.style.display = "none";
+        state.selectedText = null;
+        state.selectedRegion = null;
+        $("selectionHelp").classList.remove("hidden");
+        $("textProperties").classList.add("hidden");
+        $("regionProperties").classList.add("hidden");
+        $("selectionStatus").textContent = "Sin selección";
+        updateToolbar();
+      }
+
+      async function commitHistory() {
+        const bytes = await state.pdfDocument.save();
+        state.history = state.history.slice(0, state.historyIndex + 1);
+        if (state.savedHistoryIndex > state.historyIndex) state.savedHistoryIndex = -1;
+        state.history.push(bytes);
+        if (state.history.length > state.historyLimit) {
+          state.history.shift();
+          state.savedHistoryIndex = state.savedHistoryIndex <= 0 ? -1 : state.savedHistoryIndex - 1;
+        }
+        state.historyIndex = state.history.length - 1;
+        setDirty(state.historyIndex !== state.savedHistoryIndex);
+        clearSelection();
+        await reloadCurrentDocument(bytes);
+      }
+
+      async function reloadCurrentDocument(bytes) {
+        state.pdfDocument = await PDFLib.PDFDocument.load(bytes);
+        const task = pdfjsLib.getDocument({ data: bytes.slice() });
+        state.rendererDocument = await task.promise;
+        state.selectedPage = Math.min(state.selectedPage, state.pdfDocument.getPageCount() - 1);
+        await renderDocument();
+        updateDetails();
+        updateToolbar();
+      }
+
+      async function mutate(operation, successMessage) {
+        if (!requireDocument()) return;
+        if (state.mutating) {
+          showToast("Espera a que termine la operación en curso.", true);
+          return;
+        }
+        state.mutating = true;
+        updateToolbar();
+        setStatus("Aplicando cambios…", "busy");
+        try {
+          await operation();
+          await commitHistory();
+          setStatus(successMessage);
+          showToast(successMessage);
+        } catch (error) {
+          setStatus("No se aplicaron los cambios", "error");
+          throw error;
+        } finally {
+          state.mutating = false;
+          setLoading("", false);
+          updateToolbar();
+        }
+      }
+
+      async function undo() {
+        if (state.mutating || state.historyIndex <= 0) return;
+        state.historyIndex--;
+        await reloadCurrentDocument(state.history[state.historyIndex]);
+        setDirty(state.historyIndex !== state.savedHistoryIndex);
+        setStatus("Cambio deshecho");
+      }
+
+      async function redo() {
+        if (state.mutating || state.historyIndex >= state.history.length - 1) return;
+        state.historyIndex++;
+        await reloadCurrentDocument(state.history[state.historyIndex]);
+        setDirty(state.historyIndex !== state.savedHistoryIndex);
+        setStatus("Cambio rehecho");
+      }
+
+      function hexToRgb(hex) {
+        const value = hex.replace("#", "");
+        return PDFLib.rgb(
+          parseInt(value.slice(0, 2), 16) / 255,
+          parseInt(value.slice(2, 4), 16) / 255,
+          parseInt(value.slice(4, 6), 16) / 255
+        );
+      }
+
+      function selectionRect(selection) {
+        const topLeft = selection.viewport.convertToPdfPoint(selection.x, selection.y);
+        const bottomRight = selection.viewport.convertToPdfPoint(selection.x + selection.width, selection.y + selection.height);
+        return {
+          x: Math.min(topLeft[0], bottomRight[0]),
+          y: Math.min(topLeft[1], bottomRight[1]),
+          width: Math.abs(bottomRight[0] - topLeft[0]),
+          height: Math.abs(bottomRight[1] - topLeft[1])
+        };
+      }
+
+      async function addTextAt(pageIndex, x, y) {
+        const text = $("newTextInput").value.trim();
+        if (!text) {
+          showToast("Escribe el texto en el panel Propiedades antes de colocarlo.", true);
+          $("newTextInput").focus();
+          setTool("select");
+          return;
+        }
+        const size = Math.max(5, Math.min(96, Number($("newTextSize").value) || 14));
+        const color = hexToRgb($("newTextColor").value);
+        const font = await state.pdfDocument.embedFont($("boldInput").checked ? PDFLib.StandardFonts.HelveticaBold : PDFLib.StandardFonts.Helvetica);
+        await mutate(() => {
+          state.pdfDocument.getPage(pageIndex).drawText(text, { x, y, size, font, color });
+        }, "Se añadió el texto");
+        $("newTextInput").value = "";
+        setTool("select");
+      }
+
+      async function applySelectedText(deleteOnly = false) {
+        const selection = state.selectedText;
+        if (!selection) return;
+        const replacement = $("selectedTextInput").value;
+        if (!deleteOnly && !replacement.trim()) {
+          showToast("El texto no puede quedar vacío; usa “Cubrir este texto” para ocultarlo.", true);
+          return;
+        }
+        const rect = selectionRect(selection);
+        const size = Math.max(5, Math.min(96, Number($("textSizeInput").value) || 12));
+        const font = await state.pdfDocument.embedFont($("boldInput").checked ? PDFLib.StandardFonts.HelveticaBold : PDFLib.StandardFonts.Helvetica);
+        await mutate(() => {
+          const page = state.pdfDocument.getPage(selection.pageIndex);
+          page.drawRectangle({
+            x: rect.x - 1,
+            y: rect.y - 1,
+            width: rect.width + 2,
+            height: rect.height + 2,
+            color: PDFLib.rgb(1, 1, 1),
+            borderWidth: 0
+          });
+          if (!deleteOnly) {
+            page.drawText(replacement, {
+              x: rect.x,
+              y: rect.y + Math.max(0, (rect.height - size) / 3),
+              size,
+              font,
+              color: hexToRgb($("textColorInput").value),
+              maxWidth: Math.max(rect.width, font.widthOfTextAtSize(replacement, size)),
+              lineHeight: size * 1.15
+            });
+          }
+        }, deleteOnly ? "Se cubrió el bloque de texto" : "Se cubrió el texto anterior y se añadió la corrección");
+      }
+
+      async function eraseRegion() {
+        const region = state.selectedRegion;
+        if (!region) return;
+        await mutate(() => {
+          state.pdfDocument.getPage(region.pageIndex).drawRectangle({
+            x: region.x, y: region.y, width: region.width, height: region.height,
+            color: PDFLib.rgb(1, 1, 1), borderWidth: 0
+          });
+        }, "Se cubrió el área seleccionada");
+      }
+
+      async function placeImage(file, mode = "insert") {
+        if (!file) return;
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const isPng = file.type === "image/png" || /\.png$/i.test(file.name);
+        const image = isPng ? await state.pdfDocument.embedPng(bytes) : await state.pdfDocument.embedJpg(bytes);
+        const region = state.selectedRegion;
+        const pageIndex = region ? region.pageIndex : state.selectedPage;
+        const page = state.pdfDocument.getPage(pageIndex);
+        const box = region || { x: page.getWidth() * .15, y: page.getHeight() * .2, width: page.getWidth() * .7, height: page.getHeight() * .6 };
+        const scale = Math.min(box.width / image.width, box.height / image.height);
+        const width = image.width * scale;
+        const height = image.height * scale;
+        await mutate(() => {
+          if (mode === "replace" && region) {
+            page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: PDFLib.rgb(1, 1, 1), borderWidth: 0 });
+          }
+          page.drawImage(image, {
+            x: box.x + (box.width - width) / 2,
+            y: box.y + (box.height - height) / 2,
+            width, height
+          });
+        }, mode === "replace" ? "Se reemplazó el contenido por la imagen" : "Se añadió la imagen");
+      }
+
+      function setTool(tool) {
+        state.tool = tool;
+        canvasArea.classList.toggle("region-mode", tool === "region");
+        canvasArea.classList.toggle("text-mode", tool === "text");
+        document.querySelectorAll("[data-tool]").forEach((button) => button.classList.toggle("active", button.dataset.tool === tool));
+        if (tool !== "region") {
+          pageStack.querySelectorAll(".selection-box").forEach((box) => { if (!state.selectedRegion || box !== state.selectedRegion.box) box.style.display = "none"; });
+        }
+        if (tool === "region") {
+          clearSelection();
+          $("selectionHelp").textContent = "Arrastra sobre la página para seleccionar un área.";
+          setStatus("Arrastra para seleccionar un área");
+        } else if (tool === "text") {
+          clearSelection();
+          setStatus("Pulsa en una página para añadir el texto");
+        } else {
+          $("selectionHelp").textContent = "Selecciona un bloque de texto o dibuja un área en la página.";
+        }
+      }
+
+      async function savePdf(saveAs = false) {
+        if (!requireDocument()) return;
+        if (state.mutating) {
+          showToast("Espera a que termine la operación en curso.", true);
+          return;
+        }
+        setStatus("Preparando el PDF…", "busy");
+        try {
+          const bytes = await state.pdfDocument.save();
+          if (desktop) {
+            const result = await desktop.savePdf({
+              bytes,
+              saveAs,
+              suggestedName: state.fileName.replace(/\.pdf$/i, "") + (state.dirty ? " editado" : "") + ".pdf"
+            });
+            if (!result) {
+              setStatus("Guardado cancelado");
+              return;
+            }
+            if (result.name) state.fileName = result.name;
+            state.savedHistoryIndex = state.historyIndex;
+            setDirty(false);
+            setStatus(saveAs ? "PDF exportado" : "PDF guardado");
+            showToast((saveAs ? "Se exportó una copia como " : "Se guardaron los cambios en ") + state.fileName);
+            return;
+          }
+          if (!saveAs && state.fileHandle) {
+            if (state.dirty && !window.confirm("Guardar sobrescribirá el PDF original. ¿Deseas continuar?")) {
+              setStatus("Guardado cancelado");
+              return;
+            }
+            const writable = await state.fileHandle.createWritable();
+            await writable.write(bytes);
+            await writable.close();
+            state.savedHistoryIndex = state.historyIndex;
+            setDirty(false);
+            setStatus("Cambios guardados en el archivo");
+            showToast("Se guardaron los cambios en " + state.fileName);
+            return;
+          }
+          if ("showSaveFilePicker" in window) {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: state.fileName.replace(/\.pdf$/i, "") + (state.dirty ? " editado" : "") + ".pdf",
+              types: [{ description: "Documento PDF", accept: { "application/pdf": [".pdf"] } }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(bytes);
+            await writable.close();
+            state.fileHandle = handle;
+            state.file = await handle.getFile();
+            state.fileName = state.file.name;
+            state.savedHistoryIndex = state.historyIndex;
+            setDirty(false);
+            setStatus(saveAs ? "PDF exportado" : "PDF guardado");
+            showToast(saveAs ? "Se exportó una copia PDF correctamente." : "PDF guardado correctamente");
+            return;
+          }
+          const blob = new Blob([bytes], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = state.fileName.replace(/\.pdf$/i, "") + (state.dirty ? " editado" : "") + ".pdf";
+          anchor.click();
+          setTimeout(() => URL.revokeObjectURL(url), 30000);
+          state.savedHistoryIndex = state.historyIndex;
+          setDirty(false);
+          setStatus(saveAs ? "Descarga de la copia iniciada" : "Descarga del PDF iniciada");
+          showToast(saveAs ? "Se descargó una copia independiente del PDF." : "Se descargó el PDF actualizado.");
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            setStatus("Guardado cancelado");
+            return;
+          }
+          reportError(error, "guardar el PDF");
+        }
+      }
+
+      async function choosePdf() {
+        if (desktop) {
+          setLoading("Abriendo y preparando el documento…", true);
+          try {
+            const opened = await desktop.openPdf();
+            if (!opened) return;
+            const bytes = new Uint8Array(opened.bytes);
+            const file = new File([bytes], opened.name, { type: "application/pdf" });
+            await openFile(file);
+          } catch (error) {
+            reportError(error, "abrir el PDF");
+          } finally {
+            setLoading("", false);
+          }
+          return;
+        }
+        if ("showOpenFilePicker" in window) {
+          try {
+            const [handle] = await window.showOpenFilePicker({
+              multiple: false,
+              types: [{ description: "Documento PDF", accept: { "application/pdf": [".pdf"] } }]
+            });
+            await openFile(await handle.getFile(), handle);
+          } catch (error) {
+            if (error?.name !== "AbortError") reportError(error, "abrir el PDF");
+          }
+        } else {
+          pdfInput.click();
+        }
+      }
+
+      $("openButton").addEventListener("click", choosePdf);
+      $("welcomeOpenButton").addEventListener("click", choosePdf);
+      pdfInput.addEventListener("change", async () => {
+        const [file] = pdfInput.files;
+        try { if (file) await openFile(file); }
+        catch (error) { reportError(error, "abrir el PDF"); }
+        finally { pdfInput.value = ""; }
+      });
+      $("saveButton").addEventListener("click", () => savePdf(false));
+      $("exportButton").addEventListener("click", () => savePdf(true));
+      $("undoButton").addEventListener("click", () => undo().catch((error) => reportError(error, "deshacer el cambio")));
+      $("redoButton").addEventListener("click", () => redo().catch((error) => reportError(error, "rehacer el cambio")));
+      desktop?.onOpenPdf(() => { void choosePdf(); });
+      desktop?.onSavePdf(() => { void savePdf(false); });
+      desktop?.onExportPdf(() => { void savePdf(true); });
+      desktop?.onUndo(() => { void undo().catch((error) => reportError(error, "deshacer el cambio")); });
+      desktop?.onRedo(() => { void redo().catch((error) => reportError(error, "rehacer el cambio")); });
+      desktop?.onSaveAndClose(async () => {
+        await savePdf(false);
+        if (!state.dirty) desktop.allowClose();
+      });
+      document.querySelectorAll("[data-tool]").forEach((button) => button.addEventListener("click", () => setTool(button.dataset.tool)));
+      $("addTextButton").addEventListener("click", () => {
+        if (!requireDocument()) return;
+        if (!$("newTextInput").value.trim()) {
+          $("newTextInput").focus();
+          showToast("Escribe el texto que deseas añadir en el panel Propiedades.", true);
+          return;
+        }
+        setTool("text");
+      });
+      $("addImageButton").addEventListener("click", () => {
+        if (!requireDocument()) return;
+        state.imageMode = "insert";
+        imageInput.click();
+      });
+      $("replaceImageButton").addEventListener("click", () => {
+        if (!state.selectedRegion) return;
+        state.imageMode = "replace";
+        imageInput.click();
+      });
+      $("regionImageButton").addEventListener("click", () => {
+        if (!state.selectedRegion) return;
+        state.imageMode = "replace";
+        imageInput.click();
+      });
+      imageInput.addEventListener("change", async () => {
+        const [file] = imageInput.files;
+        try {
+          if (file) await placeImage(file, state.imageMode);
+        } catch (error) {
+          reportError(error, "añadir o reemplazar la imagen");
+        } finally {
+          imageInput.value = "";
+        }
+      });
+      $("applyTextButton").addEventListener("click", () => applySelectedText(false).catch((error) => reportError(error, "actualizar el texto")));
+      $("deleteTextButton").addEventListener("click", () => applySelectedText(true).catch((error) => reportError(error, "cubrir el texto")));
+      $("deleteSelectionButton").addEventListener("click", () => {
+        if (state.selectedText) applySelectedText(true).catch((error) => reportError(error, "cubrir el texto"));
+        else eraseRegion().catch((error) => reportError(error, "cubrir el área"));
+      });
+      $("eraseRegionButton").addEventListener("click", () => eraseRegion().catch((error) => reportError(error, "cubrir el área")));
+      $("clearRegionButton").addEventListener("click", () => { clearSelection(); setTool("select"); });
+      $("insertPageButton").addEventListener("click", () => {
+        if (!requireDocument()) return;
+        const page = state.pdfDocument.getPage(state.selectedPage);
+        const size = [page.getWidth(), page.getHeight()];
+        mutate(() => {
+          state.pdfDocument.insertPage(state.selectedPage + 1, size);
+          state.selectedPage++;
+        }, "Se insertó una página en blanco").catch((error) => reportError(error, "insertar la página"));
+      });
+      $("importPagesButton").addEventListener("click", () => {
+        if (requireDocument()) importInput.click();
+      });
+      importInput.addEventListener("change", async () => {
+        const [file] = importInput.files;
+        if (!file) return;
+        try {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          const source = await PDFLib.PDFDocument.load(bytes);
+          const pageIndexes = Array.from({ length: source.getPageCount() }, (_, index) => index);
+          if (pageIndexes.length === 0) throw new Error("El PDF seleccionado no contiene páginas.");
+          const pages = await state.pdfDocument.copyPages(source, pageIndexes);
+          await mutate(() => {
+            pages.forEach((page, index) => state.pdfDocument.insertPage(state.selectedPage + 1 + index, page));
+            state.selectedPage++;
+          }, "Se importaron " + pages.length + " páginas");
+        } catch (error) {
+          reportError(error, "importar páginas");
+        } finally {
+          importInput.value = "";
+        }
+      });
+      $("rotatePageButton").addEventListener("click", () => {
+        if (!requireDocument()) return;
+        mutate(() => {
+          const page = state.pdfDocument.getPage(state.selectedPage);
+          page.setRotation(PDFLib.degrees((page.getRotation().angle + 90) % 360));
+        }, "Se giró la página").catch((error) => reportError(error, "girar la página"));
+      });
+      $("deletePageButton").addEventListener("click", () => {
+        if (!requireDocument()) return;
+        if (state.pdfDocument.getPageCount() <= 1) {
+          showToast("No se puede eliminar la única página del documento.", true);
+          return;
+        }
+        mutate(() => {
+          state.pdfDocument.removePage(state.selectedPage);
+          state.selectedPage = Math.min(state.selectedPage, state.pdfDocument.getPageCount() - 1);
+        }, "Se eliminó la página").catch((error) => reportError(error, "eliminar la página"));
+      });
+      $("zoomInButton").addEventListener("click", () => {
+        if (state.zoom >= 2.5) return;
+        state.zoom = Math.min(2.5, Math.round((state.zoom + .1) * 10) / 10);
+        renderDocument().catch((error) => reportError(error, "cambiar el zoom"));
+      });
+      $("zoomOutButton").addEventListener("click", () => {
+        if (state.zoom <= .5) return;
+        state.zoom = Math.max(.5, Math.round((state.zoom - .1) * 10) / 10);
+        renderDocument().catch((error) => reportError(error, "cambiar el zoom"));
+      });
+      document.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+          event.preventDefault();
+          savePdf(false);
+        } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
+          event.preventDefault();
+          undo().catch((error) => reportError(error, "deshacer el cambio"));
+        } else if ((event.ctrlKey || event.metaKey) && (event.key.toLowerCase() === "y" || (event.key.toLowerCase() === "z" && event.shiftKey))) {
+          event.preventDefault();
+          redo().catch((error) => reportError(error, "rehacer el cambio"));
+        } else if (event.key === "Escape") {
+          setTool("select");
+          clearSelection();
+        }
+      });
+
+      canvasArea.addEventListener("dragover", (event) => { event.preventDefault(); });
+      canvasArea.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        const [file] = event.dataTransfer.files;
+        if (!file) return;
+        try { await openFile(file); }
+        catch (error) { reportError(error, "abrir el PDF"); }
+      });
+
+      window.addEventListener("beforeunload", (event) => {
+        if (state.dirty && !desktop) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+
+      if (desktop) {
+        $("brandSubtitle").textContent = "Aplicación de escritorio para Windows";
+      } else if (navigator.serviceWorker && window.location.protocol !== "file:" && window.isSecureContext) {
+        navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+          console.error("No se pudo activar el modo web sin conexión:", error);
+          setStatus("No se pudo activar el acceso sin conexión", "error");
+          showToast("La aplicación web funciona; no se pudo activar el modo sin conexión. Comprueba los permisos del servidor.", true);
+        });
+      }
+
+      if (!window.pdfjsLib || !window.PDFLib) {
+        setStatus("No se pudieron cargar las bibliotecas PDF", "error");
+        showToast("No se encontraron las bibliotecas PDF locales. Comprueba que la carpeta vendor esté junto a este archivo.", true);
+      } else {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
+        updateToolbar();
+      }
+    })();
+  </script>
+</body>
+</html>

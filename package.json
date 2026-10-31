@@ -1,0 +1,14 @@
+{
+  "name": "xioleni-open-pdf",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aplicación de escritorio para Windows y aplicación web local para editar PDF.",
+  "author": "Xioleni",
+  "scripts": {
+    "build:folders": "node scripts/prepare-distributions.cjs",
+    "web": "node scripts/serve-online.cjs",
+    "desktop:install": "npm --prefix \"Xioleni Open PDF - Escritorio\" install --no-audit --no-fund",
+    "desktop": "npm --prefix \"Xioleni Open PDF - Escritorio\" start",
+    "desktop:build": "npm run build:folders && npm run desktop:install && npm --prefix \"Xioleni Open PDF - Escritorio\" run dist:win"
+  }
+}

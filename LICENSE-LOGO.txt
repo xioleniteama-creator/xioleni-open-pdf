@@ -1,0 +1,21 @@
+Logotipo reservado de Xioleni Open PDF
+
+SPDX-License-Identifier: LicenseRef-Xioleni-Logo-Reserved
+
+El nombre, las ilustraciones y el diseño del logotipo de Xioleni Open PDF
+son propiedad de Xioleni Salazar y no forman parte de la licencia MIT del
+código de este repositorio.
+
+Esta excepción cubre el archivo original
+`Logo PDF 3D con icono X independiente-01.png`, así como sus copias y
+variantes derivadas: `assets/xioleni-open-pdf.png`,
+`assets/xioleni-open-pdf-app.png` y `assets/xioleni-open-pdf.ico`.
+Los binarios compilados que incluyan el logotipo no transfieren derechos
+sobre esas imágenes.
+
+Las imágenes solo se permiten en el programa Xioleni Open PDF. No se
+autoriza su reutilización, modificación, republicación ni sublicencia fuera
+del proyecto sin permiso escrito de su titular.
+
+Las dependencias distribuidas en `vendor/` conservan sus propias licencias
+y avisos, indicados en el README del proyecto.

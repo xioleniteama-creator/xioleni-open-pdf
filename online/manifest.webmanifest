@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Xioleni Open PDF",
+  "short_name": "Open PDF",
+  "description": "Editor local de documentos PDF para navegador y escritorio.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f7",
+  "theme_color": "#f5f6f7",
+  "icons": [
+    {
+      "src": "assets/xioleni-open-pdf-app.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
